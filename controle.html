@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Chamados</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        header {
+            background-color: #47838d;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        .container {
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: #fff;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        table th {
+            background-color: #47838d;
+            color: white;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            color: white;
+            background-color: #28a745;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background-color: #218838;
+        }
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #47767e;
+            color: white;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+
+        
+        .sla-estourado {
+            background-color: #ffcccb;
+            color: #ff0000;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Controle de Chamados</h1>
+        <p>Monitoramento diário dos chamados pendentes</p>
+    </header>
+
+    <div class="container">
+        <h2>Chamados por Analista</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Analista</th>
+                    <th>Total de Chamados</th>
+                    <th>Pendentes (&gt;3 dias)</th>
+                    <th>SLA Estourado</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="gerson-row">
+                    <td>Gerson</td>
+                    <td id="gerson-total">0</td>
+                    <td id="gerson-pendentes">0</td>
+                    <td id="gerson-sla">0</td>
+                    <td>
+                        <button class="btn" onclick="cobrar('Gerson', '+556185672288')">Cobrar</button>
+                    </td>
+                </tr>
+                <tr id="victor-row">
+                    <td>Victor</td>
+                    <td id="victor-total">0</td>
+                    <td id="victor-pendentes">0</td>
+                    <td id="victor-sla">0</td>
+                    <td>
+                        <button class="btn" onclick="cobrar('Victor', '+556198637534')">Cobrar</button>
+                    </td>
+                </tr>
+                <tr id="estevam-row">
+                    <td>Estevam</td>
+                    <td id="estevam-total">0</td>
+                    <td id="estevam-pendentes">0</td>
+                    <td id="estevam-sla">0</td>
+                    <td>
+                        <button class="btn" onclick="cobrar('Estevam', '+556191833889')">Cobrar</button>
+                    </td>
+                </tr>
+                <tr id="augusto-row">
+                    <td>Augusto</td>
+                    <td id="augusto-total">0</td>
+                    <td id="augusto-pendentes">0</td>
+                    <td id="augusto-sla">0</td>
+                    <td>
+                        <button class="btn" onclick="cobrar('Augusto', '+556185849179')">Cobrar</button>
+                    </td>
+                </tr>
+                <tr id="glaydstone-row">
+                    <td>Glaydstone</td>
+                    <td id="glaydstone-total">0</td>
+                    <td id="glaydstone-pendentes">0</td>
+                    <td id="glaydstone-sla">0</td>
+                    <td>
+                        <button class="btn" onclick="cobrar('Glaydstone', '+556192484268')">Cobrar</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="container">
+        <button class="btn" onclick="enviarEmail()">Enviar Resumo Diário para Gestores</button>
+    </div>
+
+    <footer>
+        <p> 2025 Controle de Chamados</p>
+    </footer>
+
+    <script>
+        //  cobrar pelo wpp
+        function cobrar(analista, numero) {
+            const mensagem = `Olá ${analista}, você possui chamados pendentes que precisam ser resolvidos!`;
+            fetch('http://127.0.0.1:5000/enviar_whatsapp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ analista: analista, mensagem: mensagem })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.mensagem);
+            })
+            .catch(error => {
+                console.error("Erro ao enviar mensagem:", error);
+            });
+        }
+
+     
+        function enviarEmail() {
+            fetch('http://127.0.0.1:5000/enviar_email', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.mensagem);
+            })
+            .catch(error => {
+                console.error("Erro ao enviar e-mail:", error);
+            });
+        }
+
+        const chamados = {
+            Gerson: { total: 10, pendentes: 4 },
+            Victor: { total: 8, pendentes: 2 },
+            Estevam: { total: 12, pendentes: 5 },
+            Augusto: { total: 7, pendentes: 3 },
+            Glaydstone: { total: 9, pendentes: 1 }
+        };
+
+        // vai atualizar a tabela p mim
+        function atualizarTabela() {
+            let analistasComSLAEstourado = 0;
+            for (let analista in chamados) {
+                const total = chamados[analista].total;
+                const pendentes = chamados[analista].pendentes;
+                const slaEstourado = pendentes > 3;
+
+               
+                document.getElementById(`${analista.toLowerCase()}-total`).textContent = total;
+                document.getElementById(`${analista.toLowerCase()}-pendentes`).textContent = pendentes;
+                document.getElementById(`${analista.toLowerCase()}-sla`).textContent = slaEstourado ? 'Sim' : 'Não';
+
+                // linha com SLA estourado
+                const row = document.getElementById(`${analista.toLowerCase()}-row`);
+                if (slaEstourado) {
+                    row.classList.add('sla-estourado');
+                    analistasComSLAEstourado++;
+                } else {
+                    row.classList.remove('sla-estourado');
+                }
+            }
+
+            //  total de analistas com SLA estourado
+            document.getElementById('sla-estourando').textContent = analistasComSLAEstourado;
+        }
+
+        // vai chamar a tabela qnd atualizar a pag
+        window.onload = atualizarTabela;
+    </script>
+</body>
+</html>
