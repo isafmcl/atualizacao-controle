@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,6 +47,7 @@
         }
         .btn:hover {
             background-color: #218838;
+            
         }
         footer {
             text-align: center;
@@ -58,11 +59,25 @@
             width: 100%;
         }
 
-        
         .sla-estourado {
             background-color: #ffcccb;
             color: #ff0000;
             font-weight: bold;
+        }
+
+        #enviar-email {
+            background-color: #1ce960;
+            margin-top: 20px;
+            padding: 10px 20px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        #enviar-email:hover {
+            background-color: #33b300;
+            
         }
     </style>
 </head>
@@ -73,14 +88,14 @@
     </header>
 
     <div class="container">
-        <h2>Chamados por Analista</h2>
+        <h2>Chamados por analista</h2>
         <table>
             <thead>
                 <tr>
                     <th>Analista</th>
-                    <th>Total de Chamados</th>
-                    <th>Pendentes (&gt;3 dias)</th>
-                    <th>SLA Estourado</th>
+                    <th>Total de chamados</th>
+                    <th>Pendentes a + 3 dias</th>
+                    <th>SLA estourado</th>
                     <th>Ação</th>
                 </tr>
             </thead>
@@ -121,13 +136,13 @@
                         <button class="btn" onclick="cobrar('Augusto', '+556185849179')">Cobrar</button>
                     </td>
                 </tr>
-                <tr id="glaydstone-row">
-                    <td>Glaydstone</td>
-                    <td id="glaydstone-total">0</td>
-                    <td id="glaydstone-pendentes">0</td>
-                    <td id="glaydstone-sla">0</td>
+                <tr id="gladystone-row">
+                    <td>Gladystone</td>
+                    <td id="gladystone-total">0</td>
+                    <td id="gladystone-pendentes">0</td>
+                    <td id="gladystone-sla">0</td>
                     <td>
-                        <button class="btn" onclick="cobrar('Glaydstone', '+556192484268')">Cobrar</button>
+                        <button class="btn" onclick="cobrar('Gladystone', '+556192484268')">Cobrar</button>
                     </td>
                 </tr>
             </tbody>
@@ -135,56 +150,68 @@
     </div>
 
     <div class="container">
-        <button class="btn" onclick="enviarEmail()">Enviar Resumo Diário para Gestores</button>
+        <h3>Analistas com SLA Estourado: <span id="sla-estourando">0</span></h3>
+        
+        <button id="enviar-email" class="btn">Enviar E-mail para Gestores</button>
     </div>
-
+    
     <footer>
-        <p> 2025 Controle de Chamados</p>
+        <p>2025 Controle de Chamados</p>
     </footer>
+    
+    <style>
+        
+        #enviar-email {
+            background-color: #4CAF50; 
+            margin-top: 20px;
+            padding: 12px 24px;
+            color: white;
+            border: 2px solid #4CAF50; 
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.2s; 
+            display: inline-block;
+        }
+    
+       
+        #enviar-email:hover {
+            background-color: #45a049; 
+            transform: scale(1.05); 
+        }
+    
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #47767e;
+            color: white;
+            position: relative;
+            width: 100%;
+            margin-top: 30px; 
+        }
+    
+        
+        .container {
+            padding-bottom: 80px; /* botao do email tava em ci*/
+        }
 
+        
+       
+    </style>
+    
+
+  
     <script>
-        //  cobrar pelo wpp
-        function cobrar(analista, numero) {
-            const mensagem = `Olá ${analista}, você possui chamados pendentes que precisam ser resolvidos!`;
-            fetch('http://127.0.0.1:5000/enviar_whatsapp', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ analista: analista, mensagem: mensagem })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.mensagem);
-            })
-            .catch(error => {
-                console.error("Erro ao enviar mensagem:", error);
-            });
-        }
-
-     
-        function enviarEmail() {
-            fetch('http://127.0.0.1:5000/enviar_email', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.mensagem);
-            })
-            .catch(error => {
-                console.error("Erro ao enviar e-mail:", error);
-            });
-        }
-
         const chamados = {
-            Gerson: { total: 10, pendentes: 4 },
-            Victor: { total: 8, pendentes: 2 },
-            Estevam: { total: 12, pendentes: 5 },
-            Augusto: { total: 7, pendentes: 3 },
-            Glaydstone: { total: 9, pendentes: 1 }
+            Gerson: { total: 6, pendentes: 6 },
+            Victor: { total: 5, pendentes: 2 },
+            Estevam: { total: 7, pendentes: 4 },
+            Augusto: { total: 3, pendentes: 1 },
+            Gladystone: { total: 8, pendentes: 5 },
         };
 
-        // vai atualizar a tabela p mim
         function atualizarTabela() {
             let analistasComSLAEstourado = 0;
             for (let analista in chamados) {
@@ -192,13 +219,15 @@
                 const pendentes = chamados[analista].pendentes;
                 const slaEstourado = pendentes > 3;
 
-               
-                document.getElementById(`${analista.toLowerCase()}-total`).textContent = total;
-                document.getElementById(`${analista.toLowerCase()}-pendentes`).textContent = pendentes;
-                document.getElementById(`${analista.toLowerCase()}-sla`).textContent = slaEstourado ? 'Sim' : 'Não';
-
-                // linha com SLA estourado
+                const totalElem = document.getElementById(`${analista.toLowerCase()}-total`);
+                const pendentesElem = document.getElementById(`${analista.toLowerCase()}-pendentes`);
+                const slaElem = document.getElementById(`${analista.toLowerCase()}-sla`);
                 const row = document.getElementById(`${analista.toLowerCase()}-row`);
+
+                if (totalElem) totalElem.textContent = total;
+                if (pendentesElem) pendentesElem.textContent = pendentes;
+                if (slaElem) slaElem.textContent = slaEstourado ? 'Sim' : 'Não';
+
                 if (slaEstourado) {
                     row.classList.add('sla-estourado');
                     analistasComSLAEstourado++;
@@ -207,12 +236,41 @@
                 }
             }
 
-            //  total de analistas com SLA estourado
             document.getElementById('sla-estourando').textContent = analistasComSLAEstourado;
         }
 
-        // vai chamar a tabela qnd atualizar a pag
+        function cobrar(analista, numero) {
+    fetch('http://127.0.0.1:5000/enviar_whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            analistas: [analista], // Enviar analista como lista
+            chamados: chamados
+        }),
+    })
+        .then(response => response.json())
+        .then(data => alert(data.mensagem))
+        .catch(error => alert('Erro ao enviar mensagem: ' + error));
+}
+
+
+        document.getElementById("enviar-email").addEventListener("click", function () {
+            fetch("http://127.0.0.1:5000/enviar_email", {
+                method: "GET",
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    alert(data.mensagem);
+                })
+                .catch((error) => {
+                    alert("Erro ao enviar o e-mail: " + error.message);
+                });
+        });
+
         window.onload = atualizarTabela;
+
+
     </script>
 </body>
 </html>
+
