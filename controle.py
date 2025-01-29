@@ -4,9 +4,10 @@ import pywhatkit as kit
 import datetime
 from flask_cors import CORS
 import pandas as pd
-
+import openpyxl
+import time
 app = Flask(__name__)
-CORS(app, origins=["http://127.0.0.1:5500"])
+CORS(app)
 
 # Configuração do Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -16,10 +17,24 @@ app.config['MAIL_USERNAME'] = "isabelle.oliveira@atacadaodiaadia.com.br"
 app.config['MAIL_PASSWORD'] = "dcks hcqd jxct pngv"
 mail = Mail(app)
 
+
 # Função para ler o relatório Excel
 def ler_relatorio_excel(caminho_arquivo):
     try:
+        # Lê o arquivo Excel
         df = pd.read_excel(caminho_arquivo)
+
+        # Converter a coluna Abertura para datetime
+        if 'Abertura' in df.columns:
+            df['Abertura'] = pd.to_datetime(df['Abertura'], errors='coerce')
+
+        # Garantir que valores inválidos sejam tratados
+        df['Abertura'] = df['Abertura'].fillna(pd.Timestamp('1970-01-01'))
+
+        # Formatar novamente como string eh opcional 
+        df['Abertura'] = df['Abertura'].dt.strftime('%d/%m/%Y %H:%M')
+        
+
         return df
     except Exception as e:
         print(f"Erro ao ler o arquivo Excel: {e}")
@@ -29,15 +44,25 @@ def ler_relatorio_excel(caminho_arquivo):
 def extrair_dados_chamados(df):
     chamados = {}
     for index, row in df.iterrows():
-        analista = row['Analista']
-        total = row['Total Chamados']
-        pendentes = row['Pendentes']
-        chamados[analista] = {'total': total, 'pendentes': pendentes}
+        try:
+            analista = row['Responsável']
+            total = chamados.get(analista, {'total': 0, 'pendentes': 0 })  # Inicializa se não existir
+ 
+            total['total'] += 1  # Incrementa o total de chamados
+            pendentes = row.get('SLAcham.', 0)
+            print(pendentes)
+            
+            total['pendentes'] += pendentes  # Acumula os pendentes
+            chamados[analista] = total
+        except Exception as e:
+            print('Este é o erro:',e)
+    print('Esse é o chamados',chamados)
+    
     return chamados
 
-@app.route('/atualizar_chamados', methods=['POST'])
+@app.route('/atualizar_chamados', methods=['GET'])
 def atualizar_chamados():
-    caminho_arquivo = r'C:\Users\isabe\OneDrive\Área de Trabalho\relatorio_chamados.xlsx'
+    caminho_arquivo = r'C:\Users\isabelle.oliveira\Downloads\RelatorioChamados.xlsx'
     df = ler_relatorio_excel(caminho_arquivo)
     if df is not None:
         chamados = extrair_dados_chamados(df)
@@ -67,9 +92,9 @@ def enviar_email(to_email):
     corpo_email = """
     Olá, boa tarde,
 
-    Este é o resumo diário dos chamados pendentes.
+    Este é o resumo diário dos chamados pendentes:
 
-    Atenciosamente, Isabelle.
+    Atenciosamente, Isabelle
     """
 
     msg = Message(subject=assunto, sender=from_email, recipients=[to_email])
@@ -91,15 +116,18 @@ def rota_whatsapp():
             return jsonify({"mensagem": "Nenhum analista selecionado"}), 400
 
         resultados = []
-        for analista in analistas_selecionados:
-            numero = analistas.get(analista)
-            if numero:
-                mensagem = f"Olá {analista}, você tem chamados pendentes! Por favor, verifique o sistema."
-                resultado = enviar_whatsapp(numero, mensagem)
-                resultados.append(f"Mensagem para {analista}: {resultado}")
-            else:
-                resultados.append(f"Analista {analista} não encontrado.")
 
+        try:
+            for analista in analistas_selecionados:
+                numero = analistas.get(analista)
+                if numero:
+                    mensagem = f"Olá {analista}, você tem chamados pendentes! Por favor, verifique o sistema."
+                    resultado = enviar_whatsapp(numero, mensagem)
+                    resultados.append(f"Mensagem para {analista}: {resultado}")
+                else:
+                    resultados.append(f"Analista {analista} não encontrado.")
+        except Exception as e:
+            print('Erro:',e)
         return jsonify({"mensagem": "Mensagens enviadas com sucesso!", "resultados": resultados})
     except Exception as e:
         return jsonify({"mensagem": f"Erro na requisição: {e}"}), 500
