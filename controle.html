@@ -4,82 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Chamados</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f9;
-        }
-        header {
-            background-color: #47838d;
-            color: white;
-            padding: 10px 20px;
-            text-align: center;
-        }
-        .container {
-            padding: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background-color: #fff;
-        }
-        table th, table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        table th {
-            background-color: #47838d;
-            color: white;
-        }
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            color: white;
-            background-color: #28a745;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        .btn:hover {
-            background-color: #218838;
-            
-        }
-        footer {
-            text-align: center;
-            padding: 10px;
-            background-color: #47767e;
-            color: white;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-        }
-
-        .sla-estourado {
-            background-color: #ffcccb;
-            color: #ff0000;
-            font-weight: bold;
-        }
-
-        #enviar-email {
-            background-color: #1ce960;
-            margin-top: 20px;
-            padding: 10px 20px;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        #enviar-email:hover {
-            background-color: #33b300;
-            
-        }
-    </style>
 </head>
 <body>
     <header>
@@ -88,18 +12,20 @@
     </header>
 
     <div class="container">
-        <h2>Chamados por analista</h2>
+        <h2>Chamados por Analista</h2>
+        <button id="atualizar-chamados" class="btn">Atualizar Chamados</button>
+        <p class="loading" id="loading">Carregando dados...</p>
         <table>
             <thead>
                 <tr>
                     <th>Analista</th>
-                    <th>Total de chamados</th>
-                    <th>Pendentes a + 3 dias</th>
-                    <th>SLA estourado</th>
+                    <th>Total de Chamados</th>
+                    <th>Pendentes + 3 dias</th>
+                    <th>SLA Estourado</th>
                     <th>Ação</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="tabela-chamados">
                 <tr id="gerson-row">
                     <td>Gerson</td>
                     <td id="gerson-total">0</td>
@@ -145,132 +71,178 @@
                         <button class="btn" onclick="cobrar('Gladystone', '+556192484268')">Cobrar</button>
                     </td>
                 </tr>
+                <!-- Linhas da tabela preenchidas dinamicamente pelo JavaScript -->
             </tbody>
         </table>
     </div>
 
     <div class="container">
         <h3>Analistas com SLA Estourado: <span id="sla-estourando">0</span></h3>
-        
         <button id="enviar-email" class="btn">Enviar E-mail para Gestores</button>
     </div>
-    
+
     <footer>
-        <p>2025 Controle de Chamados</p>
+        <p>2025 - Controle de Chamados - 1.0</p>
     </footer>
-    
-    <style>
-        
-        #enviar-email {
-            background-color: #4CAF50; 
-            margin-top: 20px;
-            padding: 12px 24px;
-            color: white;
-            border: 2px solid #4CAF50; 
-            border-radius: 5px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 16px;
-            transition: background-color 0.3s, transform 0.2s; 
-            display: inline-block;
-        }
-    
-       
-        #enviar-email:hover {
-            background-color: #45a049; 
-            transform: scale(1.05); 
-        }
-    
-        
-        footer {
-            text-align: center;
-            padding: 20px;
-            background-color: #47767e;
-            color: white;
-            position: relative;
-            width: 100%;
-            margin-top: 30px; 
-        }
-    
-        
-        .container {
-            padding-bottom: 80px; /* botao do email tava em ci*/
-        }
 
-        
-       
-    </style>
-    
-
-  
     <script>
-        const chamados = {
-            Gerson: { total: 6, pendentes: 6 },
-            Victor: { total: 5, pendentes: 2 },
-            Estevam: { total: 7, pendentes: 4 },
-            Augusto: { total: 3, pendentes: 1 },
-            Gladystone: { total: 8, pendentes: 5 },
-        };
+        const API_BASE_URL = 'http://127.0.0.1:5000';
 
-        function atualizarTabela() {
+        function atualizarTabela(chamados) {
+            const tabela = document.getElementById('tabela-chamados');
+            tabela.innerHTML = '';
+
             let analistasComSLAEstourado = 0;
-            for (let analista in chamados) {
-                const total = chamados[analista].total;
-                const pendentes = chamados[analista].pendentes;
-                const slaEstourado = pendentes > 3;
 
-                const totalElem = document.getElementById(`${analista.toLowerCase()}-total`);
-                const pendentesElem = document.getElementById(`${analista.toLowerCase()}-pendentes`);
-                const slaElem = document.getElementById(`${analista.toLowerCase()}-sla`);
-                const row = document.getElementById(`${analista.toLowerCase()}-row`);
+            for (const analista in chamados) {
+                const { total, pendentes } = chamados[analista];
+                const slaEstourado = pendentes > 3 ? 'Sim' : 'Não';
 
-                if (totalElem) totalElem.textContent = total;
-                if (pendentesElem) pendentesElem.textContent = pendentes;
-                if (slaElem) slaElem.textContent = slaEstourado ? 'Sim' : 'Não';
-
-                if (slaEstourado) {
-                    row.classList.add('sla-estourado');
+                if (slaEstourado === 'Sim') {
                     analistasComSLAEstourado++;
-                } else {
-                    row.classList.remove('sla-estourado');
                 }
+
+                const row = `
+                    <tr class="${slaEstourado === 'Sim' ? 'sla-estourado' : ''}">
+                        <td>${analista}</td>
+                        <td>${total}</td>
+                        <td>${pendentes}</td>
+                        <td>${slaEstourado}</td>
+                        <td>
+                            <button class="btn" onclick="cobrar('${analista}')">Cobrar</button>
+                        </td>
+                    </tr>
+                `;
+
+                tabela.insertAdjacentHTML('beforeend', row);
             }
 
             document.getElementById('sla-estourando').textContent = analistasComSLAEstourado;
         }
 
-        function cobrar(analista, numero) {
-    fetch('http://127.0.0.1:5000/enviar_whatsapp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            analistas: [analista], // Enviar analista como lista
-            chamados: chamados
-        }),
-    })
-        .then(response => response.json())
-        .then(data => alert(data.mensagem))
-        .catch(error => alert('Erro ao enviar mensagem: ' + error));
-}
+        function mostrarCarregando(mostrar) {
+            document.getElementById('loading').style.display = mostrar ? 'block' : 'none';
+        }
 
+        document.getElementById('atualizar-chamados').addEventListener('click', () => {
+            mostrarCarregando(true);
 
-        document.getElementById("enviar-email").addEventListener("click", function () {
-            fetch("http://127.0.0.1:5000/enviar_email", {
-                method: "GET",
+            fetch(`${API_BASE_URL}/atualizar_chamados`, {
+                method: 'GET'
             })
-                .then((response) => response.json())
-                .then((data) => {
+                .then(response => response.json())
+                .then(data => {
                     alert(data.mensagem);
+                    if (data.dados) {
+                        atualizarTabela(data.dados);
+                    }
                 })
-                .catch((error) => {
-                    alert("Erro ao enviar o e-mail: " + error.message);
-                });
+                .catch(error => alert('Erro ao atualizar chamados: ' + error.message))
+                .finally(() => mostrarCarregando(false));
         });
 
-        window.onload = atualizarTabela;
+        document.getElementById('enviar-email').addEventListener('click', () => {
+            fetch(`${API_BASE_URL}/enviar_email`, {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => alert(data.mensagem))
+                .catch(error => alert('Erro ao enviar e-mail: ' + error.message));
+        });
 
+        function cobrar(analista) {
+            fetch(`${API_BASE_URL}/enviar_whatsapp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ analistas: [analista] })
+            })
+                .then(response => response.json())
+                .then(data => alert(data.mensagem))
+                .catch(error => alert('Erro ao enviar mensagem: ' + error.message));
+        }
 
+        // Atualiza a tabela ao carregar a página
+        window.onload = () => {
+            document.getElementById('atualizar-chamados').click();
+        };
     </script>
 </body>
+
+<style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f9;
+    }
+    header {
+        background-color: #7a95b1;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    h2, h3 {
+        color: #333;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+    table th, table td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: center;
+    }
+    table th {
+        background-color: #7a95b1;
+        color: white;
+    }
+    .btn {
+        display: inline-block;
+        padding: 10px 15px;
+        color: white;
+        background-color: #28a745;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background-color 0.3s;
+    }
+    .btn:hover {
+        background-color: #4baf61;
+    }
+    footer {
+        text-align: center;
+        padding: 15px;
+        background-color: #7a95b1;
+        color: white;
+        position: relative;
+        width: 100%;
+        margin-top: 20px;
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .sla-estourado {
+        background-color: #ffcccb;
+        color: #ff0000;
+        font-weight: bold;
+    }
+    .loading {
+        display: none;
+        text-align: center;
+        margin-top: 10px;
+        font-size: 1rem;
+        color: #555;
+    }
+</style>
 </html>
 
