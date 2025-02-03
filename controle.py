@@ -3,11 +3,17 @@ from flask_mail import Mail, Message
 import pywhatkit as kit
 import datetime
 from flask_cors import CORS
+from datetime import datetime
 import pandas as pd
+from flask import Flask, render_template
+import requests
 import openpyxl
 import time
 app = Flask(__name__)
 CORS(app)
+
+
+
 
 # Configuração do Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -33,12 +39,49 @@ def ler_relatorio_excel(caminho_arquivo):
 
         # Formatar novamente como string eh opcional 
         df['Abertura'] = df['Abertura'].dt.strftime('%d/%m/%Y %H:%M')
+
+
+
+
         
+
+
 
         return df
     except Exception as e:
         print(f"Erro ao ler o arquivo Excel: {e}")
         return None
+
+
+
+# Simulação de dados que vao ser extraidos do excel 
+dados = [
+    {"Código": "B2M000161220", "Abertura": "13/1/2025 09:41"},
+    {"Código": "B2M000161769", "Abertura": "17/1/2025 13:45"},
+    {"Código": "B2M000162599", "Abertura": "27/1/2025 14:39"},
+    {"Código": "B2M000162786", "Abertura": "28/1/2025 18:17"},
+    {"Código": "CDJK00161777", "Abertura": "17/1/2025 14:38"},
+    {"Código": "B2M000162844", "Abertura": "29/1/2025 10:04"},
+]
+
+# Converter dados para data, pois esta dando erro pq contem numereros na tabela 
+df = pd.DataFrame(dados)
+
+# Converter a coluna "Abertura" para formato de data
+df["Abertura"] = pd.to_datetime(df["Abertura"], format="%d/%m/%Y %H:%M")
+
+# Definir a data atual (substitua por datetime.now() para uso real)
+data_atual = datetime(2025, 1, 29)  # Simulando a data de hoje
+
+# Calcular diferença em dias
+df["Dias Abertos"] = (data_atual - df["Abertura"]).dt.days
+
+# Filtrar chamados que estao abertos a mais de 3 dias 
+chamados_pendentes = df[df["Dias Abertos"] > 3]
+
+# Exibir resultado
+print(chamados_pendentes)
+
 
 # Função para extrair dados dos chamados
 def extrair_dados_chamados(df):
@@ -51,14 +94,18 @@ def extrair_dados_chamados(df):
             total['total'] += 1  # Incrementa o total de chamados
             pendentes = row.get('SLAcham.', 0)
             print(pendentes)
+           
             
-            total['pendentes'] += pendentes  # Acumula os pendentes
+            total['pendentes'] += pendentes  # Vai fazer a soma dos chamados pendentes 
             chamados[analista] = total
         except Exception as e:
             print('Este é o erro:',e)
     print('Esse é o chamados',chamados)
+
     
     return chamados
+
+
 
 @app.route('/atualizar_chamados', methods=['GET'])
 def atualizar_chamados():
@@ -75,12 +122,12 @@ analistas = {
     "Victor": "+556198637534",
     "Estevam": "+556191833889",
     "Augusto": "+556185849179",
-    "Gladystone": "+556192484268"
+    "ellick": "+556199063627",
 }
 
 def enviar_whatsapp(numero, mensagem):
     try:
-        kit.sendwhatmsg_instantly(numero, mensagem, wait_time=10)
+        kit.sendwhatmsg_instantly(numero, mensagem, wait_time=20)
         return "Mensagem enviada com sucesso!"
     except Exception as e:
         return f"Erro ao enviar mensagem: {e}"
@@ -88,14 +135,23 @@ def enviar_whatsapp(numero, mensagem):
 def enviar_email(to_email):
     from_email = app.config['MAIL_USERNAME']
     agora = datetime.datetime.now()
-    assunto = f"Resumo Diário - {agora.strftime('%d/%m/%Y')}"
+    assunto = f"Resumo Diário dos Chamados Pendentes - {agora.strftime('%d/%m/%Y')}"
     corpo_email = """
-    Olá, boa tarde,
+   Olá, boa tarde,
 
-    Este é o resumo diário dos chamados pendentes:
+   Segue o resumo diário dos chamados pendentes:
 
-    Atenciosamente, Isabelle
-    """
+   Chamados na fila de atendimento: 
+   Chamados com SLA estourado: 
+   Chamados abertos há mais de 3 dias: 
+   Quantidade por Analista x Status:
+
+   Em espera: 
+   Respondido pelo usuário: 
+   Pendente de resposta do usuário: 
+   Atenciosamente,
+   Isabelle
+      """
 
     msg = Message(subject=assunto, sender=from_email, recipients=[to_email])
     msg.body = corpo_email
@@ -117,24 +173,22 @@ def rota_whatsapp():
 
         resultados = []
 
-        try:
-            for analista in analistas_selecionados:
-                numero = analistas.get(analista)
-                if numero:
-                    mensagem = f"Olá {analista}, você tem chamados pendentes! Por favor, verifique o sistema."
-                    resultado = enviar_whatsapp(numero, mensagem)
-                    resultados.append(f"Mensagem para {analista}: {resultado}")
-                else:
-                    resultados.append(f"Analista {analista} não encontrado.")
-        except Exception as e:
-            print('Erro:',e)
+        for analista in analistas_selecionados:
+            numero = analistas.get(analista)
+            if numero:
+                mensagem = f"Olá {analista}, você tem chamados pendentes! Por favor, verifique o sistema."
+                resultado = enviar_whatsapp(numero, mensagem)
+                resultados.append(f"Mensagem para {analista}: {resultado}")
+            else:
+                resultados.append(f"Analista {analista} não encontrado.")
+
         return jsonify({"mensagem": "Mensagens enviadas com sucesso!", "resultados": resultados})
     except Exception as e:
         return jsonify({"mensagem": f"Erro na requisição: {e}"}), 500
 
 @app.route('/enviar_email', methods=['POST'])
 def rota_email():
-    to_email = "ellick.barreto@atacadaodiaadia.com.br"
+    to_email = "ellick.barreto@atacadaodiaadia.com.br/raionny.fernandes@atacadaodiaadia.com.br"
     resultado = enviar_email(to_email)
     return jsonify({"mensagem": resultado})
 
